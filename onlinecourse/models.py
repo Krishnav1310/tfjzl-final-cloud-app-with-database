@@ -108,15 +108,20 @@ class Enrollment(models.Model):
     # Has question content
     # Other fields and methods you would like to design
 class Question(models.Model):
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, null=True, blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True)
-    question_text = models.CharField(max_length=200)
-    grade = models.IntegerField(default=50)
+    question_text = models.TextField()
+    content = models.TextField(blank=True, default='')
+    grade = models.IntegerField(default=1)
 
     def __str__(self):
-        return self.question_text
+        return self.question_text or self.content
 
     def save(self, *args, **kwargs):
+        if not self.content and self.question_text:
+            self.content = self.question_text
+        if not self.question_text and self.content:
+            self.question_text = self.content
         if self.lesson and not self.course:
             self.course = self.lesson.course
         super().save(*args, **kwargs)
@@ -140,11 +145,19 @@ class Question(models.Model):
     # Other fields and methods you would like to design
 class Choice(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    choice_text = models.CharField(max_length=200)
+    choice_text = models.CharField(max_length=200, default='')
+    content = models.CharField(max_length=200, blank=True, default='')
     is_correct = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.choice_text
+        return self.choice_text or self.content
+
+    def save(self, *args, **kwargs):
+        if not self.content and self.choice_text:
+            self.content = self.choice_text
+        if not self.choice_text and self.content:
+            self.choice_text = self.content
+        super().save(*args, **kwargs)
 
 
 # <HINT> The submission model
@@ -156,4 +169,4 @@ class Submission(models.Model):
     choices = models.ManyToManyField(Choice)
 
     def __str__(self):
-        return f"Submission {self.id} for {self.enrollment}"
+        return f"Submission {self.id} for enrollment {self.enrollment_id}"
